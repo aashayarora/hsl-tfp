@@ -2,7 +2,15 @@ import torch
 import torch.nn.functional as F #?? 
 from torch import nn
 
-from utils import initialize_weights
+#Needed to reference python folders in different locations
+import os
+import sys
+module_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+    
+import layout_data.utils.initialize as LDUI
+
 
 '''
 Things to do:
@@ -91,7 +99,7 @@ class UNet(nn.Module):
         )
         
         model.final = nn.Conv2d(64, classes, kernel_size=1) #One last convolution
-        initialize_weights(model) #initialize weights for our model
+        LDUI.initialize_weights(model) #initialize weights for our model
         
     def forward(model, x): #Actually run through the model for some input
         enc1 = model.enc1(x)
