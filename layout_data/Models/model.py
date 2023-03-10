@@ -15,10 +15,10 @@ if module_path not in sys.path:
     sys.path.append(module_path)
     
 ''' Quite a few of these parts still need to be written '''
-#import #Transforms
-import layout_data.Models.UNet as LDMU
-#import #Heatmap Visualizations 
-#import #Layout Datasets
+import layout_data.utils.np_transforms as LDUNP
+import layout_data.Models.UNet as transforms
+import layout_data.utils.visualize as LDUV
+import layout_data.data.layout as LDDA
 import layout_data.loss.ULLoss as LDLU
 
 class UNetUnsupLearn(LightningModule):
@@ -74,7 +74,7 @@ class UNetUnsupLearn(LightningModule):
         References function from another part that is yet to be created. That should help.
         '''
         
-        train_dataset = LayoutDataset(
+        train_dataset = LDDA.LayoutDataset(
             model.hparams.data_root, 
             subdir = model.hparams.train_dir, 
             list_path = model.hparams.train_list,
@@ -83,7 +83,7 @@ class UNetUnsupLearn(LightningModule):
             load_name = model.hparams.load_name, 
             nx = model.hparams.nx)
     
-        val_dataset = LayoutDataset(
+        val_dataset = LDDA.LayoutDataset(
             model.hparams.data_root, 
             subdir = model.hparams.val_dir, 
             list_path = model.hparams.val_list,
@@ -92,7 +92,7 @@ class UNetUnsupLearn(LightningModule):
             load_name = model.hparams.load_name, 
             nx = model.hparams.nx)
         
-        test_dataset = LayoutDataset(
+        test_dataset = LDDA.LayoutDataset(
             model.hparams.data_root, 
             subdir = model.hparams.test_dir, 
             list_path = model.hparams.test_list,
@@ -158,7 +158,7 @@ class UNetUnsupLearn(LightningModule):
                 heat_pre_list.append(heat_pre_k[heat_idx, :, :, :].squeeze().cpu().numpy())
             x = np.linspace(0, 0.1, model.hparams.nx)
             y = np.linspace(0, 0.1, model.hparams.nx)
-            visualize_heatmap(x, y, heat_list, heat_pre_list, model.current_epoch)
+            LDUV.visualize_heatmap(x, y, heat_list, heat_pre_list, model.current_epoch)
         
         return {"Jacobi Validation Loss": loss_jacobi, "MAE Validation Loss": val_mae}
     
