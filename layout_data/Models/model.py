@@ -3,10 +3,10 @@ import torch.nn.functional as F
 
 import numpy as np
 
-from torch.utils.data import DataLoader #Loading data in the correct way
-from torch.optim.lr_scheduler import ExponentialLR #Exponential learning rates
-from pytorch_lightning import LightningModule #Module type to actually run the model. Need to install separately.
-#pip install pytorch-lightning
+from torch.utils.data import DataLoader # Loading data in the correct way
+from torch.optim.lr_scheduler import ExponentialLR # Exponential learning rates
+from pytorch_lightning import LightningModule # Module type to actually run the model. Need to install separately.
+# pip install pytorch-lightning
 
 import os
 import sys
@@ -16,58 +16,63 @@ if module_path not in sys.path:
     
 ''' Quite a few of these parts still need to be written '''
 import layout_data.utils.np_transforms as LDUNP
-import layout_data.Models.UNet as transforms
+import layout_data.Models.UNet as UNet
 import layout_data.utils.visualize as LDUV
 import layout_data.data.layout as LDDA
 import layout_data.loss.ULLoss as LDLU
 
 class UNetUnsupLearn(LightningModule):
-    def __init__(model, hparams):
+    def __init__(self, hparams):
         super().__init__()
-        model.hparams = hparams #Init hyper parameters 
-        model.train_dataset = None #Init all the datasets, to be added to later
-        model.val_dataset = None
-        model.test_dataset = None
-        model.build_model()
-        model.build_loss()
+        self.hparams = hparams # Init hyper parameters 
+
+        self.train_dataset = None # Init all the datasets, to be added to later
+        self.val_dataset = None
+        self.test_dataset = None
+
+        self.model = None
+        self.build_model()
+
+        self.loss = None
+        self.build_loss()
         
-    def _build_model(model):
-        model.model = LDMU.UNet(input_channels=1, classes=1, bn=False) #Build the model using UNet reference
+    def _build_model(self):
+        self.model = UNet(input_channels=1, classes=1, bn=False) #Build the model using UNet reference
         
-    def _build_loss(model):
-        nx = model.hparams.nx #Set loss 
-        length = model.hparams.length
-        bcs = model.hparams.bcs
-        model.loss = LDLU.Jacobi_layer(nx, length, bcs)
+    def _build_loss(self):
+        nx = self.hparams.nx #Set loss 
+        length = self.hparams.length
+        bcs = self.hparams.bcs
+        self.loss = LDLU.Jacobi_layer(nx, length, bcs)
         
-    def forward(model, x):
-        return model.model(x)
+    def forward(self, x):
+        return self.model(x)
     
-    def data_loader(model, dataset, batch_size, shuffle=True):
+    def data_loader(self, dataset, batch_size, shuffle=True):
         loader = DataLoader( #Load in the data using a specific batch size
             dataset=dataset,
             batch_size=batch_size,
-            num_workers=model.hparams.num_workers,
+            num_workers=self.hparams.num_workers,
             shuffle=shuffle,
         )
         return loader
     
-    def configure_optimizer(model):
-        optimizer = torch.optim.Adam(model.parameters(), lr=model.hparams.lr) #Set to use Adam optimizer
-        scheduler = ExponentialLR(optimizer, gamma=0.85) #Set to change learning rate with a "decay" of 0.85
+    def configure_optimizer(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr) # Set to use Adam optimizer
+        scheduler = ExponentialLR(optimizer, gamma=0.85) # Set to change learning rate with a "decay" of 0.85
         return [optimizer], [scheduler]
     
-    def prepare_data(model): 
-        #Prepare the data using the above functions
-        size: int =  model.hparams.input_size #"Hint" to forces the size to be an int type
-        transform_layout = transforms.Compose([ #Transform the data referencing preset mean and std layouts
-            transforms.ToTensor(),
-            transforms.Normalize(
-                torch.tensor([model.hparams.mean_layout]),
-                torch.tensor([model.hparams.std_layout])
+    def prepare_data(self): 
+        # Prepare the data using the above functions
+        size: int =  self.hparams.input_size # "Hint" to forces the size to be an int type
+        transform_layout = LDUNP.Compose([ # Transform the data referencing preset mean and std layouts
+            LDUNP.ToTensor(),
+            LDUNP.Normalize(
+                torch.tensor([self.hparams.mean_layout]),
+                torch.tensor([self.hparams.std_layout])
             ),
         ])
-        transform_heat = transforms.Compose([transforms.ToTensor()])
+        transform_heat = LDUNP.Compose([LDUNP.ToTensor()])
         
         '''
         Need to spend a bit more time fully understanding this code for training/testing/validiation
@@ -75,57 +80,57 @@ class UNetUnsupLearn(LightningModule):
         '''
         
         train_dataset = LDDA.LayoutDataset(
-            model.hparams.data_root, 
-            subdir = model.hparams.train_dir, 
-            list_path = model.hparams.train_list,
+            self.hparams.data_root, 
+            subdir = self.hparams.train_dir, 
+            list_path = self.hparams.train_list,
             transform = transform_layout, 
             target_transform = transform_heat,
-            load_name = model.hparams.load_name, 
-            nx = model.hparams.nx)
+            load_name = self.hparams.load_name, 
+            nx = self.hparams.nx)
     
         val_dataset = LDDA.LayoutDataset(
-            model.hparams.data_root, 
-            subdir = model.hparams.val_dir, 
-            list_path = model.hparams.val_list,
+            self.hparams.data_root, 
+            subdir = self.hparams.val_dir, 
+            list_path = self.hparams.val_list,
             transform = transform_layout, 
             target_transform = transform_heat,
-            load_name = model.hparams.load_name, 
-            nx = model.hparams.nx)
+            load_name = self.hparams.load_name, 
+            nx = self.hparams.nx)
         
         test_dataset = LDDA.LayoutDataset(
-            model.hparams.data_root, 
-            subdir = model.hparams.test_dir, 
-            list_path = model.hparams.test_list,
+            self.hparams.data_root, 
+            subdir = self.hparams.test_dir, 
+            list_path = self.hparams.test_list,
             transform = transform_layout, 
             target_transform = transform_heat,
-            load_name = model.hparams.load_name, 
-            nx = model.hparams.nx)
+            load_name = self.hparams.load_name, 
+            nx = self.hparams.nx)
         
         ''' Print statement was left out here ''' 
 
-        #Assigned to model class for later use
-        model.train_dataset = train_dataset
-        model.val_dataset = val_dataset
-        model.test_dataset = test_dataset
+        # Assigned to model class for later use
+        self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
+        self.test_dataset = test_dataset
     
-    #Call out data loading function for train, val, and test datasets to fully load the data in
-    def train_dataloader(model): #Shuffle only on training to help from overtraining
-        return model.data_loader(model.train_dataset, batch_size=model.hparams.batch_size)
+    # Call out data loading function for train, val, and test datasets to fully load the data in
+    def train_dataloader(self): # Shuffle only on training to help from overtraining
+        return self.data_loader(self.train_dataset, batch_size=self.hparams.batch_size)
     
-    def val_dataloader(model):
-        return mode.data_loader(model.val_dataset, batch_size=16, shuffle=False)
+    def val_dataloader(self):
+        return self.data_loader(self.val_dataset, batch_size=16, shuffle=False)
     
-    def test_dataloader(model):
-        return model.data_loader(model.test_dataset, batch_size=1, shuffle=False)
+    def test_dataloader(self):
+        return self.data_loader(self.test_dataset, batch_size=1, shuffle=False)
     
-    def training_step(model, batch, batch_idx):
+    def training_step(self, batch, batch_idx):
         layout, _ = batch
-        heat_pre = model(layout)
+        heat_pre = self(layout) # Calling self as a function? Don't understand
 
-        layout = layout * model.hparams.std_layout + model.hparams.mean_layout
+        layout = layout * self.hparams.std_layout + self.hparams.mean_layout
         # The loss of govern equation + Online Hard Sample Mining
         with torch.no_grad():
-            heat_jacobi = model.jacobi(layout, heat_pre, 1)
+            heat_jacobi = self.jacobi(layout, heat_pre, 1)
 
         loss_fun = LDLU.OHEMF12d(loss_fun=F.l1_loss)
         # loss_fun = torch.nn.MSELoss()
@@ -134,19 +139,19 @@ class UNetUnsupLearn(LightningModule):
 
         loss = loss_jacobi
 
-        model.log('loss_jacobi', loss_jacobi)
-        model.log('loss', loss)
+        self.log('loss_jacobi', loss_jacobi)
+        self.log('loss', loss)
 
         return {"loss": loss}
     
-    def validation_step(model, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):
         layout, heat = batch
-        heat_pre = model(layout)
+        heat_pre = self(layout)
         heat_pred_k = heat_pre + 298
         
-        layout = layout * model.hparams.std_layout + model.hparams.mean_layout
+        layout = layout * self.hparams.std_layout + self.hparams.mean_layout
         
-        loss_jacobic = F.l1loss(heat_pre, model.jacobi(layout, heat_pre.detach(), 1))
+        loss_jacobi = F.l1loss(heat_pre, self.jacobi(layout, heat_pre.detach(), 1))
         
         val_mae = F.l1_loss(heat_pred_k, heat)
         
@@ -154,17 +159,17 @@ class UNetUnsupLearn(LightningModule):
             N, _, _, _ = heat.shape
             heat_list, heat_pre_list, heat_err_list = [], [], []
             for heat_idx in range(5):
-                heat_list.append(heat[heat_ics, :, :, :].squeeze().cpu().numpy())
-                heat_pre_list.append(heat_pre_k[heat_idx, :, :, :].squeeze().cpu().numpy())
-            x = np.linspace(0, 0.1, model.hparams.nx)
-            y = np.linspace(0, 0.1, model.hparams.nx)
-            LDUV.visualize_heatmap(x, y, heat_list, heat_pre_list, model.current_epoch)
+                heat_list.append(heat[heat_idx, :, :, :].squeeze().cpu().numpy())
+                heat_pre_list.append(heat_pred_k[heat_idx, :, :, :].squeeze().cpu().numpy())
+            x = np.linspace(0, 0.1, self.hparams.nx)
+            y = np.linspace(0, 0.1, self.hparams.nx)
+            LDUV.visualize_heatmap(x, y, heat_list, heat_pre_list, self.current_epoch)
         
         return {"Jacobi Validation Loss": loss_jacobi, "MAE Validation Loss": val_mae}
     
-    def validation_epoch_end(model, outputs):
+    def validation_epoch_end(self, outputs):
         val_loss_jacobi_mean = torch.stack([x["Jacobi Validation Loss"] for x in outputs]).mean()
         val_mae_mean = torch.stack([x["MAE Validation Loss"] for x in outputs]).mean()
         
-        model.log("Jacobi Validation Loss", val_loss_jacobi_mean)
-        model.log("MAE Validation Loss", val_mae_mean)
+        self.log("Jacobi Validation Loss", val_loss_jacobi_mean)
+        self.log("MAE Validation Loss", val_mae_mean)
