@@ -1,13 +1,13 @@
 # config
 
 # dataset path
-data_root: /mnt/jfs/zhaoxiaoyu/data/ul/complex_component/FDM
+data_root: /home/pknauss/private/Phys 139 Final Project/hsl-tfp/raw_data/complex_component/FDM
 train_dir: train
 val_dir: train
 test_dir: train
-train_list: /mnt/jfs/zhaoxiaoyu/data/ul/train.txt
-val_list: /mnt/jfs/zhaoxiaoyu/data/ul/val.txt
-test_list: /mnt/jfs/zhaoxiaoyu/data/ul/test.txt
+train_list: /home/pknauss/private/Phys 139 Final Project/hsl-tfp/raw_data/train.txt
+val_list: /home/pknauss/private/Phys 139 Final Project/hsl-tfp/raw_data/val.txt
+test_list: /home/pknauss/private/Phys 139 Final Project/hsl-tfp/raw_data/test.txt
 
 # dataset properties
 load_name: F # F, list

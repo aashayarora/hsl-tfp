@@ -49,5 +49,8 @@ def parses_ul(config_path):
     parser.add_argument("--u_D", type=float)
     parser.add_argument("--bcs", type=yaml.safe_load, action="append", help="Dirichlet boundaries", )
     
+    #needed to run in jupyter notebook
+    parser.add_argument('-f')
+    
     args = parser.parse_args()
     return args

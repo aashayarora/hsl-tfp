@@ -24,6 +24,7 @@ def main(hparams):
     
     #initialize model
     model = UNetUnsupLearn(hparams)
+    #print(model)
     
     #initialize training
     checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor='Jacobi Validation Loss', mode='min')
@@ -35,18 +36,10 @@ def main(hparams):
         val_check_interval = hparams.val_check_interval,
         resume_from_checkpoint = hparams.resume_from_checkpoint,
         profiler = hparams.profiler,
-        weights_summary = None,
+        #weights_summary = None,
         benchmark = True)
     
     #start training
     print(hparams)
     print()
     trainer.fit(model)
-
-if __name__ == "__main__":
-    # ------------------------
-    # TRAINING ARGUMENTS
-    # ------------------------
-    config_path = Path(__file__).absolute().parent / "config_ul.yml"
-    hparams = parses_ul(config_path)
-    main(hparams)

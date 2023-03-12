@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import scipy.io as sio
+import h5py
 from torchvision.datasets import VisionDataset
 
 class LoadResponse(VisionDataset):
@@ -48,7 +50,7 @@ def make_dataset_list(root_dir, list_path, extensions=None, is_valid_file=None, 
     if extensions is not None:
         is_valid_file = lambda x: has_allowed_extension(x, extensions)
         
-    assert os.path.isdir(root_dir), root_dir
+    #assert os.path.isdir(root_dir), root_dir
     with open(list_path, 'r') as rf: #Finds all the files in the list_path directory that was passed in
         for line in rf.readlines():
             data_path = line.strip()

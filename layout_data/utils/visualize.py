@@ -2,6 +2,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+import os
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+save_path = os.path.join(root_dir, 'figures')
+
 TOL = 1e-14
 
 def visualize_heatmap(x, y, heat_list, heat_pre_list, epoch):
@@ -21,5 +25,5 @@ def visualize_heatmap(x, y, heat_list, heat_pre_list, epoch):
         plt.contourf(x, y, heat_pre_list[i] - heat_list[i], levels=50, cmap=matplotlib.cm.coolwarm)
         plt.colorbar()
         plt.title('Error') #This subplot is for the "Error" - the difference of the two which correlates to the error
-    plt.savefig('figure/epoch' + str(epoch) + '_pre.png', bbox_inches='tight', pad_inches=0)
+    plt.savefig(save_path + '/epoch' + str(epoch) + '_pre.png', bbox_inches='tight', pad_inches=0)
     plt.close()

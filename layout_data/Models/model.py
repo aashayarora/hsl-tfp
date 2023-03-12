@@ -14,7 +14,6 @@ module_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(_
 if module_path not in sys.path:
     sys.path.append(module_path)
     
-''' Quite a few of these parts still need to be written '''
 import layout_data.utils.np_transforms as LDUNP
 import layout_data.Models.UNet as UNet
 import layout_data.utils.visualize as LDUV
@@ -24,20 +23,20 @@ import layout_data.loss.ULLoss as LDLU
 class UNetUnsupLearn(LightningModule):
     def __init__(self, hparams):
         super().__init__()
-        self.hparams = hparams # Init hyper parameters 
+        self.save_hyperparameters(hparams) # Init hyper parameters (different function needed for hyper parameters)
 
         self.train_dataset = None # Init all the datasets, to be added to later
         self.val_dataset = None
         self.test_dataset = None
 
         self.model = None
-        self.build_model()
+        self._build_model()
 
         self.loss = None
-        self.build_loss()
+        self._build_loss()
         
     def _build_model(self):
-        self.model = UNet(input_channels=1, classes=1, bn=False) #Build the model using UNet reference
+        self.model = UNet.UNet(input_channels=1, classes=1, bn=False) #Build the model using UNet reference
         
     def _build_loss(self):
         nx = self.hparams.nx #Set loss 
@@ -48,7 +47,7 @@ class UNetUnsupLearn(LightningModule):
     def forward(self, x):
         return self.model(x)
     
-    def data_loader(self, dataset, batch_size, shuffle=True):
+    def __dataloader(self, dataset, batch_size, shuffle=True):
         loader = DataLoader( #Load in the data using a specific batch size
             dataset=dataset,
             batch_size=batch_size,
@@ -57,7 +56,7 @@ class UNetUnsupLearn(LightningModule):
         )
         return loader
     
-    def configure_optimizer(self):
+    def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr) # Set to use Adam optimizer
         scheduler = ExponentialLR(optimizer, gamma=0.85) # Set to change learning rate with a "decay" of 0.85
         return [optimizer], [scheduler]
@@ -115,22 +114,22 @@ class UNetUnsupLearn(LightningModule):
     
     # Call out data loading function for train, val, and test datasets to fully load the data in
     def train_dataloader(self): # Shuffle only on training to help from overtraining
-        return self.data_loader(self.train_dataset, batch_size=self.hparams.batch_size)
+        return self.__dataloader(self.train_dataset, batch_size=self.hparams.batch_size)
     
     def val_dataloader(self):
-        return self.data_loader(self.val_dataset, batch_size=16, shuffle=False)
+        return self.__dataloader(self.val_dataset, batch_size=16, shuffle=False)
     
     def test_dataloader(self):
-        return self.data_loader(self.test_dataset, batch_size=1, shuffle=False)
+        return self.__dataloader(self.test_dataset, batch_size=1, shuffle=False)
     
     def training_step(self, batch, batch_idx):
         layout, _ = batch
-        heat_pre = self(layout) # Calling self as a function? Don't understand
+        heat_pre = self(layout) 
 
         layout = layout * self.hparams.std_layout + self.hparams.mean_layout
         # The loss of govern equation + Online Hard Sample Mining
         with torch.no_grad():
-            heat_jacobi = self.jacobi(layout, heat_pre, 1)
+            heat_jacobi = self.loss(layout, heat_pre, 1)
 
         loss_fun = LDLU.OHEMF12d(loss_fun=F.l1_loss)
         # loss_fun = torch.nn.MSELoss()
@@ -151,7 +150,7 @@ class UNetUnsupLearn(LightningModule):
         
         layout = layout * self.hparams.std_layout + self.hparams.mean_layout
         
-        loss_jacobi = F.l1loss(heat_pre, self.jacobi(layout, heat_pre.detach(), 1))
+        loss_jacobi = F.l1_loss(heat_pre, self.loss(layout, heat_pre.detach(), 1))
         
         val_mae = F.l1_loss(heat_pred_k, heat)
         
@@ -173,3 +172,9 @@ class UNetUnsupLearn(LightningModule):
         
         self.log("Jacobi Validation Loss", val_loss_jacobi_mean)
         self.log("MAE Validation Loss", val_mae_mean)
+        
+    def test_step(self, batch, batch_idx):
+        pass
+
+    def test_epoch_end(self, outputs):
+        pass
