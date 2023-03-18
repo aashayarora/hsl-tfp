@@ -14,11 +14,22 @@ module_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(_
 if module_path not in sys.path:
     sys.path.append(module_path)
     
+
+# Relies directly on torchvision - Maybe needs to be ported
 import layout_data.utils.np_transforms as LDUNP
+
+# Already Ported
 import layout_data.Models.UNet as UNet
+
+# No port necessary
 import layout_data.utils.visualize as LDUV
+
+# Relies indirectly on torchvision - Maybe needs to be ported
 import layout_data.data.layout as LDDA
+
+# Fully written in torch - Must be ported
 import layout_data.loss.ULLoss as LDLU
+
 
 class UNetUnsupLearn(LightningModule):
     def __init__(self, hparams):

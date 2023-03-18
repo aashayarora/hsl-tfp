@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, BatchNormalization, LayerNormalization, ReLU, MaxPooling2D, Dropout, Conv2DTranspose, Concatenate, AveragePooling2D
 from tensorflow.keras import Sequential
 from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import L1
 
 #Needed to reference python folders in different locations
 import os
@@ -26,10 +27,10 @@ class _EncoderBlock(tf.keras.layers.Layer):
     def __init__(self, input_channels, output_channels, dropout=False, polling=True, bn=False):
         super(_EncoderBlock, self).__init__() 
         layers = [
-            Conv2D(output_channels, kernel_size=3, padding="same", activation=None),
+            Conv2D(output_channels, kernel_size=3, padding="same", activation=None, kernel_regularizer=L1(0.01)),
             BatchNormalization() if bn else LayerNormalization(),
             ReLU(),
-            Conv2D(output_channels, kernel_size=3, padding="same", activation=None),
+            Conv2D(output_channels, kernel_size=3, padding="same", activation=None, kernel_regularizer=L1(0.01)),
             BatchNormalization() if bn else LayerNormalization(),
             ReLU(),
         ]
@@ -54,10 +55,10 @@ class _DecoderBlock(tf.keras.layers.Layer):
     def __init__(self, input_channels, middle_channels, output_channels, bn=False):
         super(_DecoderBlock, self).__init__()
         layers = [
-            Conv2D(middle_channels, kernel_size=3, padding="same", activation=None),
+            Conv2D(middle_channels, kernel_size=3, padding="same", activation=None, kernel_regularizer=L1(0.01)),
             BatchNormalization() if bn else LayerNormalization(),
             ReLU(),
-            Conv2D(output_channels, kernel_size=3, padding="same", activation=None),
+            Conv2D(output_channels, kernel_size=3, padding="same", activation=None, kernel_regularizer=L1(0.01)),
             BatchNormalization() if bn else LayerNormalization(),
             ReLU(),
         ]
