@@ -15,7 +15,7 @@ sys.path.append(rootPath)
 from layout_data.utils.options import parses_ul
 from layout_data.Models.model import UNetUnsupLearn
 
-def main(hparams):
+def trainul(hparams):
     #The actual training routine
     seed = hparams.seed
     np.random.seed(seed)
