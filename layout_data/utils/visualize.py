@@ -25,5 +25,5 @@ def visualize_heatmap(x, y, heat_list, heat_pre_list, epoch):
         plt.contourf(x, y, heat_pre_list[i] - heat_list[i], levels=50, cmap=matplotlib.cm.coolwarm)
         plt.colorbar()
         plt.title('Error') #This subplot is for the "Error" - the difference of the two which correlates to the error
-    plt.savefig(save_path + '/epoch' + str(epoch) + '_pre.png', bbox_inches='tight', pad_inches=0)
+    plt.savefig(save_path + '/epoch' + str(epoch) + '_pre.png', bbox_inches='tight', pad_inches=0) #Saves heatmap
     plt.close()

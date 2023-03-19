@@ -24,9 +24,8 @@ should be imported from the utils folder instead of in here. -> Done!
 
 
 class _EncoderBlock(nn.Module):
-    
+    #This builds one "block" for the "front" side of the U-Net
     def __init__(model, input_channels, output_channels, dropout=False, polling=True, bn=False):
-        #class initialization with inputs model, the input and output channels, and choices on whether to dropout, poll, or use batch normalization
         super(_EncoderBlock, model).__init__() #Takes initialization values from torch library
         layers = [ #Set layers as two sets of: Convolution, Normalization (Batch or Group), GELU activation
             nn.Conv2d(input_channels, output_channels, kernel_size=3, padding=1, padding_mode='reflect'),
@@ -77,7 +76,7 @@ class UNet(nn.Module):
     def __init__(model, classes, input_channels=3, bn=False):
         #Initializing the full UNet architecture. bn and input_channels are set, but put as inputs to make it easy to change
         super(UNet, model).__init__()
-        model.enc1 = _EncoderBlock(input_channels, 64, polling=False, bn=bn)
+        model.enc1 = _EncoderBlock(input_channels, 64, polling=False, bn=bn) #Four UNet layers
         model.enc2 = _EncoderBlock(64, 128, bn=bn)
         model.enc3 = _EncoderBlock(128, 256, bn=bn)
         model.enc4 = _EncoderBlock(256, 512, bn=bn)
@@ -86,7 +85,7 @@ class UNet(nn.Module):
         model.center = _DecoderBlock(512, 1024, 512, bn=bn)
         #Pool and centering before transitioning between encoding and decoding. Similar to "flatten"
         
-        model.dec4 = _DecoderBlock(1024, 512, 256, bn=bn)
+        model.dec4 = _DecoderBlock(1024, 512, 256, bn=bn) #Four layers of decoding, matching up to the four layers of encoding
         model.dec3 = _DecoderBlock(512, 256, 128, bn=bn)
         model.dec2 = _DecoderBlock(256, 128, 64, bn=bn)
         model.dec1 = nn.Sequential( #For the last convolution set, we remove padding and change the kernel size
@@ -111,9 +110,8 @@ class UNet(nn.Module):
         dec3 = model.dec3(torch.cat([F.interpolate(dec4, enc3.size()[-2:], align_corners=False, mode='bilinear'), enc3], 1))
         dec2 = model.dec2(torch.cat([F.interpolate(dec3, enc2.size()[-2:], align_corners=False, mode='bilinear'), enc2], 1))
         dec1 = model.dec1(torch.cat([F.interpolate(dec2, enc1.size()[-2:], align_corners=False, mode='bilinear'), enc1], 1))
-        #There is more required for the decoding as we need to take the previous step and merge it with the encoding output
-        #It first interpolates decN to the size of encN, then concatenates the two together, then runs the decoder block
+        #The decoding inputs are more complicated, but shown on the graphic. Interpolate that layers encoding block to the shape we need, then concatenate that encoder block and the previous layers decoder output. Then feed this into the decoder block.
         
-        final = model.final(dec1)
+        final = model.final(dec1) #Set the class atribute for later use
         
         return final    

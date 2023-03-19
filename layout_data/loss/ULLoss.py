@@ -5,9 +5,9 @@ from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 
 """ Loss function with hard constraints 
-
 """
-class Jacobi_layer(torch.nn.Module):
+
+class Jacobi_layer(torch.nn.Module): #Jacobian loss
     def __init__(self, nx=21, length=0.1, bcs=None):
         super().__init__()
         self.length = length
@@ -62,9 +62,9 @@ class Jacobi_layer(torch.nn.Module):
         return x
 
 """ Loss function with soft constraints 
-
 """
-class Jacobi_layerSoft(torch.nn.Module):
+
+class Jacobi_layerSoft(torch.nn.Module): #We used hard constraints, so we didnt use this function but it is good to have for different testing scenarios. 
     def __init__(
             self, nx=21, length=0.1, bcs=None
     ):
@@ -121,11 +121,9 @@ class Jacobi_layerSoft(torch.nn.Module):
         return x
 
 """ Weighted Loss
-
 """
-class OHEMF12d(torch.nn.Module):
 
-
+class OHEMF12d(torch.nn.Module): 
     def __init__(self, loss_fun, weight=None):
         super(OHEMF12d, self).__init__()
         self.weight = weight

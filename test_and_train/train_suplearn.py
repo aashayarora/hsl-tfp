@@ -14,14 +14,14 @@ sys.path.append(rootPath)
 from layout_data.Models.model import UNet_SupLearn
 
 def trainsl(hparams):
-    seed = hparams.seed
+    seed = hparams.seed #Seeds for randomness
     np.random.seed(seed)
     torch.manual_seed(seed)
     
-    model = UNet_SupLearn(hparams)
+    model = UNet_SupLearn(hparams) #Create model
     
-    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor='val_mae_mean', mode='min')
-    trainer = pl.Trainer(
+    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor='val_mae_mean', mode='min') #Create checkpoints to continue incase training stops
+    trainer = pl.Trainer( #Creates trainer
         max_epochs=hparams.max_epochs,
         callbacks=[checkpoint_callback],
         gpus=[hparams.gpus],
@@ -33,4 +33,4 @@ def trainsl(hparams):
     
     print(hparams)
     print()
-    trainer.fit(model)
+    trainer.fit(model) #Trains

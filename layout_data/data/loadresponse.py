@@ -66,7 +66,7 @@ def has_allowed_extension(filename, extensions):
     return filename.lower().endswith(extensions)
 
 def mat_loader(path, load_name, resp_name=None, nx=200):
-    #Loads in the layout of the data
+    #Loads in the layout of the data from matlab files
     mats = sio.loadmat(path)
     if load_name == 'F':
         load = mats.get(load_name).astype(np.float32)

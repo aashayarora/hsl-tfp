@@ -13,7 +13,7 @@ class ToTensor:
             return torch.tensor(x, dtype=self.type).unsqueeze(0)
         return torch.tensor(x, dtype=self.type)
 
-class Resize:
+class Resize: #Resizes to a requested size
     def __init__(self, size):
         self.size = size
     
@@ -23,7 +23,7 @@ class Resize:
 class Lambda(transforms.Lambda):
     pass
 
-class Compose(transforms.Compose):
+class Compose(transforms.Compose): 
     pass
 
 class Normalize(transforms.Normalize):

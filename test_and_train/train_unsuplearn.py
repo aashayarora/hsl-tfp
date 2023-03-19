@@ -24,11 +24,10 @@ def trainul(hparams):
     
     #initialize model
     model = UNetUnsupLearn(hparams)
-    #print(model)
     
     #initialize training
     checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor='Jacobi Validation Loss', mode='min')
-    trainer = pl.Trainer(
+    trainer = pl.Trainer( #Creates trainer
         max_epochs = hparams.max_epochs,
         callbacks = [checkpoint_callback],
         gpus = [hparams.gpus],
@@ -36,10 +35,8 @@ def trainul(hparams):
         val_check_interval = hparams.val_check_interval,
         resume_from_checkpoint = hparams.resume_from_checkpoint,
         profiler = hparams.profiler,
-        #weights_summary = None,
         benchmark = True)
     
-    #start training
     print(hparams)
     print()
-    trainer.fit(model)
+    trainer.fit(model) #Trains

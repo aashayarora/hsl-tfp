@@ -1,7 +1,7 @@
 import configargparse
 import yaml
 
-def parses_ul(config_path):
+def parses_ul(config_path): #Takes the config path and deciphers everything in the config
     parser = configargparse.ArgParser(
         default_config_files=[str(config_path)],
         description = "Hyper Parameters",

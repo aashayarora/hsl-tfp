@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-def initialize_weights(*models):
+def initialize_weights(*models): #initialize weights for later use
     for model in models:
         for module in model.modules():
             if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):

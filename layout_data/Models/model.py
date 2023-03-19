@@ -21,6 +21,7 @@ import layout_data.data.layout as LDDA
 import layout_data.loss.ULLoss as LDLU
 
 class UNetUnsupLearn(LightningModule):
+    #Unssupervised Learning using the UNet architecture
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams) # Init hyper parameters (different function needed for hyper parameters)
@@ -39,13 +40,14 @@ class UNetUnsupLearn(LightningModule):
         self.model = UNet.UNet(input_channels=1, classes=1, bn=False) #Build the model using UNet reference
         
     def _build_loss(self):
-        nx = self.hparams.nx #Set loss 
+        #Builds the loss function from the hyperparameters
+        nx = self.hparams.nx 
         length = self.hparams.length
         bcs = self.hparams.bcs
-        self.loss = LDLU.Jacobi_layer(nx, length, bcs)
+        self.loss = LDLU.Jacobi_layer(nx, length, bcs) #Using Jacobian loss
         
     def forward(self, x):
-        return self.model(x)
+        return self.model(x) #Actually run the model (forward class automatically run in torch)
     
     def __dataloader(self, dataset, batch_size, shuffle=True):
         loader = DataLoader( #Load in the data using a specific batch size
@@ -73,11 +75,7 @@ class UNetUnsupLearn(LightningModule):
         ])
         transform_heat = LDUNP.Compose([LDUNP.ToTensor()])
         
-        '''
-        Need to spend a bit more time fully understanding this code for training/testing/validiation
-        References function from another part that is yet to be created. That should help.
-        '''
-        
+        #Build the 3 different datasets
         train_dataset = LDDA.LayoutDataset(
             self.hparams.data_root, 
             subdir = self.hparams.train_dir, 
@@ -105,8 +103,6 @@ class UNetUnsupLearn(LightningModule):
             load_name = self.hparams.load_name, 
             nx = self.hparams.nx)
         
-        ''' Print statement was left out here ''' 
-
         # Assigned to model class for later use
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -116,25 +112,23 @@ class UNetUnsupLearn(LightningModule):
     def train_dataloader(self): # Shuffle only on training to help from overtraining
         return self.__dataloader(self.train_dataset, batch_size=self.hparams.batch_size)
     
-    def val_dataloader(self):
+    def val_dataloader(self): #Load in validation data
         return self.__dataloader(self.val_dataset, batch_size=16, shuffle=False)
     
-    def test_dataloader(self):
+    def test_dataloader(self): #Load in test data
         return self.__dataloader(self.test_dataset, batch_size=1, shuffle=False)
     
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx): #A single step of training
         layout, _ = batch
         heat_pre = self(layout) 
 
-        layout = layout * self.hparams.std_layout + self.hparams.mean_layout
+        layout = layout * self.hparams.std_layout + self.hparams.mean_layout #Normalization
         # The loss of govern equation + Online Hard Sample Mining
         with torch.no_grad():
             heat_jacobi = self.loss(layout, heat_pre, 1)
 
         loss_fun = LDLU.OHEMF12d(loss_fun=F.l1_loss)
-        # loss_fun = torch.nn.MSELoss()
-        # loss_fun = torch.nn.L1Loss()
-        loss_jacobi = loss_fun(heat_pre - heat_jacobi, torch.zeros_like(heat_pre - heat_jacobi))
+        loss_jacobi = loss_fun(heat_pre - heat_jacobi, torch.zeros_like(heat_pre - heat_jacobi)) 
 
         loss = loss_jacobi
 
@@ -143,18 +137,18 @@ class UNetUnsupLearn(LightningModule):
 
         return {"loss": loss}
     
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx): #A step of validation
         layout, heat = batch
         heat_pre = self(layout)
-        heat_pred_k = heat_pre + 298
+        heat_pred_k = heat_pre + 298 #Use kelvin instead of celsius
         
-        layout = layout * self.hparams.std_layout + self.hparams.mean_layout
+        layout = layout * self.hparams.std_layout + self.hparams.mean_layout #Normalization
         
-        loss_jacobi = F.l1_loss(heat_pre, self.loss(layout, heat_pre.detach(), 1))
+        loss_jacobi = F.l1_loss(heat_pre, self.loss(layout, heat_pre.detach(), 1)) #Jacobian loss
         
-        val_mae = F.l1_loss(heat_pred_k, heat)
+        val_mae = F.l1_loss(heat_pred_k, heat) #MAE Loss
         
-        if batch_idx == 0:
+        if batch_idx == 0: #On the first batch index of validation (at the end of each training epoch), create a heatmap
             N, _, _, _ = heat.shape
             heat_list, heat_pre_list, heat_err_list = [], [], []
             for heat_idx in range(5):
@@ -166,7 +160,7 @@ class UNetUnsupLearn(LightningModule):
         
         return {"Jacobi Validation Loss": loss_jacobi, "MAE Validation Loss": val_mae}
     
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs): #At the end of the each validation epoch, log the MAE and Jacobian losses
         val_loss_jacobi_mean = torch.stack([x["Jacobi Validation Loss"] for x in outputs]).mean()
         val_mae_mean = torch.stack([x["MAE Validation Loss"] for x in outputs]).mean()
         
@@ -180,7 +174,7 @@ class UNetUnsupLearn(LightningModule):
         pass
     
     
-class UNet_SupLearn(LightningModule):
+class UNetSupLearn(LightningModule):
     #Supervised learning, for comparison against unsupervised learning
     def __init__(self, hparams):
         super().__init__()
@@ -190,13 +184,13 @@ class UNet_SupLearn(LightningModule):
         self.val_dataset = None
         self._build_model()
         
-    def _build_model(self):
+    def _build_model(self): #As before, use our UNet architecture
         self.model = UNet.UNet(input_channels = 1, classes = 1, bn=False)
     
-    def forward(self, x):
+    def forward(self, x): #Create model
         return self.model(x)
     
-    def __dataloader(self, dataset, batch_size, shuffle=True):
+    def __dataloader(self, dataset, batch_size, shuffle=True): #Load data
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
@@ -204,12 +198,12 @@ class UNet_SupLearn(LightningModule):
             shuffle=shuffle)
         return loader
     
-    def configure_optimizers(self):
+    def configure_optimizers(self): #Same optimizers and learning rate
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
         scheduler = ExponentialLR(optimizer, gamma=0.85)
         return [optimizer],[scheduler]
     
-    def prepare_data(self):
+    def prepare_data(self): #Prepare the data, same as before
         size: int = self.hparams.input_size
         transform_layout = LDUNP.Compose([
             LDUNP.ToTensor(),
@@ -234,7 +228,7 @@ class UNet_SupLearn(LightningModule):
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         
-    def train_dataloader(self):
+    def train_dataloader(self): #Load data, same as before
         return self.__dataloader(self.train_dataset, batch_size=self.hparams.batch_size)
     
     def val_dataloader(self):
@@ -247,14 +241,14 @@ class UNet_SupLearn(LightningModule):
         layout, heat = batch
         heat_pre = self(layout)
         
-        loss_fun = torch.nn.L1Loss()
-        loss = loss_fun(heat_pre, heat - 298.0)
+        loss_fun = torch.nn.L1Loss() #Use different loss function - supervised learning
+        loss = loss_fun(heat_pre, heat - 298.0) 
         
         self.log('loss',loss)
         
         return {"loss": loss}
     
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx): #Same validation steps, including creation of heatmap
         layout, heat = batch
         heat_pre = self(layout)
         heat_pre_k = heat_pre + 298
@@ -273,7 +267,7 @@ class UNet_SupLearn(LightningModule):
             
         return {"val_mae": val_mae}
     
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs): #Log just MAE loss, as we dont have Jacobian loss in supervised learning
         val_mae_mean = torch.stack([x["val_mae"] for x in outputs]).mean()
         self.log('val_mae_mean', val_mae_mean)
         
